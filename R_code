@@ -4,5 +4,54 @@
 # given: dat_m: data matrix containing the z-scores (columns: stem cell types, rows: inhibitors) and 
 # groups: which groups (stem cell types in columns) to be compared (e.g. group1: columns 1,2,3; group2: columns 4,5,6...)
 
-# sample correlation heatmaps
+# load libraries
+library(gplots)
+library(xlsx)
+
+# calculation of pairwise t-tests
+# dat_m: data matrix containing z-scores of stem cell types (columns) and inhibitors (columns)
+# groups: hPSC groups to be compared (e.g. group1: columns 1,2,3; group2: columns 4,5,6...)
+# pairwise t-tests are calculated for each inhibitor, adjusted p-values are reported in excel files
+pairw_tTest=apply(dat_m, 1, function(x){pairwise.t.test(x, groups, p.adjust="BH")})
+write.xlsx(pairw_tTest[[1]]$p.value, file="pairwise_T-tests_zscore.xlsx", sheetName=names(pairw_tTest[1]))
+for(l in 2:length(pairw_tTest)){
+	write.xlsx(pairw_tTest[[l]]$p.value, file="pairwise_T-tests_zscore.xlsx", sheetName=names(pairw_tTest[l]), append=T)
+}
+# select from dat_m only those inhibitors with significant differences in means between the different groups
+for(k in 1:length(pairw_tTest)){
+	if(length(which(pairw_tTest[[k]]$p.value < 0.01)) > 0){
+		if(exists("signTable")){
+			signTable=rbind(signTable, dat_m[k,])
+			signNames=c(signNames, rownames(dat_m)[k])	
+		} else { 
+			signTable=dat_m[k,]
+			signNames=rownames(dat_m)[k]	
+		}
+	}
+}
+rownames(signTable)=signNames
+
+# sample correlation heatmaps 
+c_pea=cor(dat_m, method="pearson")
+heatmap.2(c_pea, trace="none", density.info="none", notecol="black", dendrogram="none", Rowv =F, Colv =F, margins = c(7,7), main=paste("Sample correlations", sheets[i], sep=" ")) #
+
+
+# heatmaps of inhibitor-z-scores with significant differences in means between the different groups 
+mycols = c(colorRampPalette(c("blue4","royalblue1","white"))(length(seq(signif(range(signTable)[1],2), 0, by=0.2))),colorRampPalette(c("white","orange","red"))(length(seq(0, signif(range(signTable)[2],2), by=0.2))))
+breaks = (seq(signif(range(signTable)[1],2),signif(range(signTable)[2],2), length=length(seq(signif(range(signTable)[1],2), 0, by=0.2))+length(seq(0, signif(range(signTable)[2],2), by=0.2))+1))
+par(cex.main=0.9)
+heatmap.2(signTable, col = mycols, scale="none", breaks=breaks, margins = c(7,11), keysize=1.2, symm=F, symkey=F, symbreaks=T, trace="none", density.info="none", ) 
+	
+	
+# hierarchical clustering
+c_sp=cor(dat_m, method="spearman")
+d_sp=as.dist(1-c_sp)
+plot(hclust(d_sp))
+
+
+# principal component analysis
+cols=c(rep("blue", 3), rep("darkgreen", 3), rep("black", 3), rep("yellow3", 3), rep("red", 3), rep("violetred3", 3), rep("orange", 3), rep("gray40", 3), rep("plum", 3))
+pca=prcomp(t(dat_m))
+plot(pca$x, pch=16, main=paste("PCA", sheets[i], sep=" "), xlab=paste("PC1 (",  round(summary(pca)$importance[2,1]*100,2), "%)", sep=""), ylab=paste("PC2 (",  round(summary(pca)$importance[2,2]*100,2), "%)", sep=""), col=cols)
+text(pca$x, rownames(pca$x), cex=0.8, pos=1, col=cols)
 
