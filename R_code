@@ -1,0 +1,8 @@
+# this code was used for the creation of (diagnostic) plots, for correlation calculations, and for the calculation of pairwise t-tests
+# in order to compare the effect of several inhibitors on different human pluripotent stem cell (hPSC) groups
+
+# given: dat_m: data matrix containing the z-scores (columns: stem cell types, rows: inhibitors) and 
+# groups: which groups (stem cell types in columns) to be compared (e.g. group1: columns 1,2,3; group2: columns 4,5,6...)
+
+# sample correlation heatmaps
+
